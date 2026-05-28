@@ -193,7 +193,10 @@ export default function WorldsPage() {
 
         {/* Enter world button — only shown when a world is selected */}
         {selectedWorld && !dropdownOpen && (
-          <TouchableOpacity style={styles.primaryButton}>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => router.push(`/world/${selectedWorld.id}`)}
+          >
             <Text style={styles.primaryButtonText}>Enter {selectedWorld.name}</Text>
           </TouchableOpacity>
         )}
