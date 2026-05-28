@@ -8,7 +8,16 @@ type Props = {
 
 export default function WorldHeader({ section }: Props) {
   const router = useRouter();
-  const { worldName } = useWorld();
+  const { worldName, isDesktop } = useWorld();
+
+  // On desktop the sidebar handles navigation — just show the section title
+  if (isDesktop) {
+    return (
+      <View style={styles.desktopHeader}>
+        <Text style={styles.desktopSection}>{section}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.header}>
@@ -24,6 +33,7 @@ export default function WorldHeader({ section }: Props) {
 }
 
 const styles = StyleSheet.create({
+  // Mobile header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -61,5 +71,20 @@ const styles = StyleSheet.create({
     color: '#8b8fa8',
     fontWeight: '500',
     marginTop: 1,
+  },
+
+  // Desktop header — just the section name, no back button
+  desktopHeader: {
+    paddingHorizontal: 32,
+    paddingTop: 40,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1e1e30',
+  },
+  desktopSection: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: -0.5,
   },
 });

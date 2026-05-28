@@ -1,33 +1,69 @@
-import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ActivityIndicator,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
+import { CARD_TYPE_COLOR, type CardType } from '../../../lib/cardTypes';
 import WorldHeader from './_header';
 
 type World = {
   id: string;
   name: string;
   description: string | null;
-  created_at: string;
 };
+
+type RecentCard = {
+  id: string;
+  title: string;
+  type: CardType;
+  updated_at: string;
+};
+
+function timeAgo(iso: string): string {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
 
 export default function WorldHome() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const [world, setWorld] = useState<World | null>(null);
+  const [recentCards, setRecentCards] = useState<RecentCard[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    supabase
-      .from('worlds')
-      .select('id, name, description, created_at')
-      .eq('id', id)
-      .single()
-      .then(({ data }) => {
-        setWorld(data);
-        setLoading(false);
-      });
+  const fetchData = useCallback(async () => {
+    const [worldRes, cardsRes] = await Promise.all([
+      supabase
+        .from('worlds')
+        .select('id, name, description')
+        .eq('id', id)
+        .single(),
+      supabase
+        .from('cards')
+        .select('id, title, type, updated_at')
+        .eq('world_id', id)
+        .order('updated_at', { ascending: false })
+        .limit(10),
+    ]);
+
+    setWorld(worldRes.data);
+    setRecentCards(cardsRes.data ?? []);
+    setLoading(false);
   }, [id]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   if (loading) {
     return (
@@ -42,38 +78,58 @@ export default function WorldHome() {
       <StatusBar style="light" />
       <WorldHeader section="Home" />
 
-      <View style={styles.content}>
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>World</Text>
-          <Text style={styles.cardTitle}>{world?.name}</Text>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* World info card */}
+        <View style={styles.worldCard}>
+          <Text style={styles.worldCardLabel}>World</Text>
+          <Text style={styles.worldCardTitle}>{world?.name}</Text>
           {world?.description ? (
-            <Text style={styles.cardDescription}>{world.description}</Text>
+            <Text style={styles.worldCardDesc}>{world.description}</Text>
           ) : null}
         </View>
 
-        <View style={styles.grid}>
-          {[
-            { label: 'Timeline', icon: '◷', desc: 'Track events across time' },
-            { label: 'Maps', icon: '◈', desc: 'Explore your world' },
-            { label: 'Lore', icon: '✦', desc: 'Characters, factions & more' },
-          ].map((item) => (
-            <View key={item.label} style={styles.gridItem}>
-              <Text style={styles.gridIcon}>{item.icon}</Text>
-              <Text style={styles.gridLabel}>{item.label}</Text>
-              <Text style={styles.gridDesc}>{item.desc}</Text>
+        {/* Recent edits */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent edits</Text>
+
+          {recentCards.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No recent edits</Text>
+              <Text style={styles.emptySubtext}>
+                Head to Lore to create your first card.
+              </Text>
             </View>
-          ))}
+          ) : (
+            <View style={styles.cardList}>
+              {recentCards.map((card) => {
+                const color = CARD_TYPE_COLOR[card.type] ?? '#6366f1';
+                return (
+                  <TouchableOpacity
+                    key={card.id}
+                    style={styles.recentCard}
+                    onPress={() => router.push(`/world/${id}/lore` as any)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.typeTag, { backgroundColor: color + '22' }]}>
+                      <Text style={[styles.typeTagText, { color }]}>{card.type}</Text>
+                    </View>
+                    <Text style={styles.recentCardTitle} numberOfLines={1}>
+                      {card.title}
+                    </Text>
+                    <Text style={styles.recentCardTime}>{timeAgo(card.updated_at)}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0f0f1a',
-  },
+  container: { flex: 1, backgroundColor: '#0f0f1a' },
   centered: {
     flex: 1,
     backgroundColor: '#0f0f1a',
@@ -81,11 +137,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   content: {
-    flex: 1,
     padding: 24,
-    gap: 20,
+    gap: 28,
+    paddingBottom: 40,
   },
-  card: {
+  worldCard: {
     backgroundColor: '#1a1a2e',
     borderRadius: 16,
     padding: 20,
@@ -93,52 +149,84 @@ const styles = StyleSheet.create({
     borderColor: '#2d2d44',
     gap: 6,
   },
-  cardLabel: {
+  worldCardLabel: {
     fontSize: 11,
     fontWeight: '600',
     color: '#6366f1',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
-  cardTitle: {
+  worldCardTitle: {
     fontSize: 24,
     fontWeight: '800',
     color: '#ffffff',
     letterSpacing: -0.5,
   },
-  cardDescription: {
+  worldCardDesc: {
     fontSize: 14,
     color: '#8b8fa8',
     lineHeight: 20,
     marginTop: 4,
   },
-  grid: {
+  section: {
     gap: 12,
   },
-  gridItem: {
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#8b8fa8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  emptyState: {
     backgroundColor: '#1a1a2e',
     borderRadius: 14,
-    padding: 16,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#2d2d44',
+    alignItems: 'center',
+    gap: 6,
+  },
+  emptyText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  emptySubtext: {
+    fontSize: 13,
+    color: '#8b8fa8',
+    textAlign: 'center',
+  },
+  cardList: {
+    gap: 8,
+  },
+  recentCard: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 12,
+    padding: 14,
     borderWidth: 1,
     borderColor: '#2d2d44',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 10,
   },
-  gridIcon: {
-    fontSize: 22,
-    color: '#6366f1',
-    width: 28,
-    textAlign: 'center',
+  typeTag: {
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
-  gridLabel: {
-    fontSize: 15,
+  typeTagText: {
+    fontSize: 11,
     fontWeight: '700',
-    color: '#ffffff',
-    flex: 1,
   },
-  gridDesc: {
+  recentCardTitle: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  recentCardTime: {
     fontSize: 12,
-    color: '#8b8fa8',
+    color: '#4a4a6a',
   },
 });
