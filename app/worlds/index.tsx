@@ -9,7 +9,6 @@ import {
   TextInput,
   FlatList,
   Pressable,
-  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
@@ -26,6 +25,7 @@ export default function WorldsPage() {
   const router = useRouter();
   const [worlds, setWorlds] = useState<World[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   const [selectedWorld, setSelectedWorld] = useState<World | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -35,6 +35,7 @@ export default function WorldsPage() {
   const [newDescription, setNewDescription] = useState('');
   const [creating, setCreating] = useState(false);
   const [nameError, setNameError] = useState('');
+  const [createError, setCreateError] = useState('');
 
   const fetchWorlds = useCallback(async () => {
     setLoading(true);
@@ -44,7 +45,7 @@ export default function WorldsPage() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      Alert.alert('Error', error.message);
+      setFetchError(error.message);
     } else {
       setWorlds(data ?? []);
       // Auto-select the first world if none selected
@@ -75,14 +76,21 @@ export default function WorldsPage() {
     }
 
     setCreating(true);
-    const { data: { user } } = await supabase.auth.getUser();
+    setCreateError('');
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setCreateError('You must be signed in to create a world.');
+      setCreating(false);
+      return;
+    }
 
     const { data, error } = await supabase
       .from('worlds')
       .insert({
         name: newName.trim(),
         description: newDescription.trim() || null,
-        owner_id: user!.id,
+        owner_id: session.user.id,
       })
       .select()
       .single();
@@ -90,7 +98,7 @@ export default function WorldsPage() {
     setCreating(false);
 
     if (error) {
-      Alert.alert('Error', error.message);
+      setCreateError(error.message);
     } else {
       setWorlds((prev) => [data, ...prev]);
       setSelectedWorld(data);
@@ -98,6 +106,7 @@ export default function WorldsPage() {
       setNewName('');
       setNewDescription('');
       setNameError('');
+      setCreateError('');
     }
   }
 
@@ -105,6 +114,7 @@ export default function WorldsPage() {
     setNewName('');
     setNewDescription('');
     setNameError('');
+    setCreateError('');
     setModalVisible(true);
   }
 
@@ -125,6 +135,8 @@ export default function WorldsPage() {
 
         {loading ? (
           <ActivityIndicator color="#6366f1" style={{ marginTop: 20 }} />
+        ) : fetchError ? (
+          <Text style={styles.errorText}>{fetchError}</Text>
         ) : worlds.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>No worlds yet</Text>
@@ -230,6 +242,10 @@ export default function WorldsPage() {
                 numberOfLines={3}
               />
             </View>
+
+            {createError ? (
+              <Text style={styles.errorText}>{createError}</Text>
+            ) : null}
 
             <View style={styles.modalActions}>
               <TouchableOpacity
