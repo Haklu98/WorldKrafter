@@ -1,4 +1,4 @@
-import type { TrackingType } from './_types';
+import type { TrackingType } from './types';
 
 export const GREGORIAN_PRESET = {
   name: 'Gregorian Calendar',

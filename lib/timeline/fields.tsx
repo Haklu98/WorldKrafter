@@ -1,7 +1,7 @@
 // Shared form field components used across timeline modals
 
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
-import { F, S } from './_styles';
+import { F, S } from './styles';
 
 export function NumField({ label, value, onChange, hint }: {
   label: string; value: string; onChange: (v: string) => void; hint?: string;

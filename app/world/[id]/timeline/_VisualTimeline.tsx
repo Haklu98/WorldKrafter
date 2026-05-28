@@ -1,9 +1,10 @@
 import { useRef } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet,
 } from 'react-native';
 import { CARD_TYPE_COLOR } from '../../../../lib/cardTypes';
-import type { CardTimestamp, Timeline, TimelinePeriod, TimelineOrientation } from './_types';
+import type { CardTimestamp, Timeline, TimelinePeriod, TimelineOrientation } from '../../../../lib/timeline/types';
+import { confirmAction } from '../../../../lib/timeline/confirm';
 
 type Props = {
   timeline: Timeline;
@@ -25,10 +26,7 @@ function formatDate(year: number, month: number | null, day: number | null): str
 }
 
 function confirmDelete(label: string, onConfirm: () => void) {
-  Alert.alert('Delete event', `Remove "${label}" from the timeline?`, [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: onConfirm },
-  ]);
+  confirmAction('Delete event', `Remove "${label}" from the timeline?`, onConfirm);
 }
 
 // ─── Period label strip ───────────────────────────────────────────────────────

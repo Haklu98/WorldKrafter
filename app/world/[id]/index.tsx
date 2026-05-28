@@ -67,8 +67,7 @@ export default function WorldHome() {
     fetchData();
   }, [fetchData]);
 
-  function handleCardCreated(card: CreatedCard) {
-    // Prepend to recent list and trim to 10
+  function handleCardCreated(card: CreatedCard, _timestamps: any[]) {
     setRecentCards((prev) => [card, ...prev].slice(0, 10));
     setModalVisible(false);
   }

@@ -1,6 +1,7 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import type { TimeFormat } from './_types';
-import { S } from './_styles';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import type { TimeFormat } from '../../../../lib/timeline/types';
+import { S } from '../../../../lib/timeline/styles';
+import { confirmAction } from '../../../../lib/timeline/confirm';
 
 type Props = {
   fmt: TimeFormat;
@@ -19,13 +20,10 @@ export default function FormatCard({ fmt, onDelete }: Props) {
   ];
 
   function confirmDelete() {
-    Alert.alert(
+    confirmAction(
       'Delete time format',
       `Delete "${fmt.name}"? Timelines using this format will lose their format reference.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: onDelete },
-      ]
+      onDelete
     );
   }
 

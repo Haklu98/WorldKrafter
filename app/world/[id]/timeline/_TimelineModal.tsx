@@ -4,9 +4,9 @@ import {
   TextInput, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
 import { supabase } from '../../../../lib/supabase';
-import { NumField, RadioOption } from './_fields';
-import { F, S } from './_styles';
-import type { TimeFormat, Timeline, TrackingType, PeriodDraft } from './_types';
+import { NumField, RadioOption } from '../../../../lib/timeline/fields';
+import { F, S } from '../../../../lib/timeline/styles';
+import type { TimeFormat, Timeline, TrackingType, PeriodDraft } from '../../../../lib/timeline/types';
 
 type Props = {
   visible: boolean;

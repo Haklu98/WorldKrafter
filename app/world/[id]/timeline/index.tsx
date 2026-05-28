@@ -11,12 +11,12 @@ import TimelineCard from './_TimelineCard';
 import TimeFormatModal from './_TimeFormatModal';
 import TimelineModal from './_TimelineModal';
 import VisualTimeline from './_VisualTimeline';
-import AddEventModal from './_AddEventModal';
-import { S } from './_styles';
+import CreateCardModal from '../_create-card-modal';
+import { S } from '../../../../lib/timeline/styles';
 import type {
   Timeline, TimeFormat, TimelinePeriod,
   CardTimestamp, TimelineOrientation,
-} from './_types';
+} from '../../../../lib/timeline/types';
 
 export default function WorldTimeline() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -94,10 +94,10 @@ export default function WorldTimeline() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  function handleEventsCreated(newTs: CardTimestamp[]) {
-    setEvents((prev) =>
-      [...prev, ...newTs].sort((a, b) => a.sort_key - b.sort_key)
-    );
+  function handleCardCreated(_card: any, newTs: CardTimestamp[]) {
+    if (newTs.length > 0) {
+      setEvents((prev) => [...prev, ...newTs].sort((a, b) => a.sort_key - b.sort_key));
+    }
     setShowAddEvent(false);
   }
 
@@ -264,12 +264,13 @@ export default function WorldTimeline() {
       />
 
       {timeline && (
-        <AddEventModal
+        <CreateCardModal
           visible={showAddEvent}
           worldId={id}
           timeline={timeline}
+          periods={periods}
           onClose={() => setShowAddEvent(false)}
-          onCreated={handleEventsCreated}
+          onCreated={handleCardCreated}
         />
       )}
     </View>

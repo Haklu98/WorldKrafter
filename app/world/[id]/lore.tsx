@@ -1,60 +1,57 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
+  StyleSheet, Text, View, TouchableOpacity,
+  ActivityIndicator, ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { CARD_TYPES, CARD_TYPE_COLOR, type CardType } from '../../../lib/cardTypes';
 import WorldHeader from './_header';
-import CreateCardModal, { type CreatedCard } from './_create-card-modal';
-
-type Card = {
-  id: string;
-  title: string;
-  type: CardType;
-  content: string | null;
-  updated_at: string;
-};
+import CreateCardModal from './_create-card-modal';
+import CardView, { type FullCard } from './_card-view';
 
 type FilterType = CardType | 'All';
 
 export default function WorldLore() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [cards, setCards] = useState<Card[]>([]);
+  const [cards, setCards] = useState<FullCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('All');
   const [fetchError, setFetchError] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<FullCard | null>(null);
 
   const fetchCards = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('cards')
-      .select('id, title, type, content, updated_at')
+      .select('id, title, type, content, sections, updated_at')
       .eq('world_id', id)
       .order('updated_at', { ascending: false });
 
-    if (error) {
-      setFetchError(error.message);
-    } else {
-      setCards(data ?? []);
-    }
+    if (error) setFetchError(error.message);
+    else setCards((data ?? []).map((c: any) => ({ ...c, sections: c.sections ?? [] })));
     setLoading(false);
   }, [id]);
 
-  useEffect(() => {
-    fetchCards();
-  }, [fetchCards]);
+  useEffect(() => { fetchCards(); }, [fetchCards]);
 
-  function handleCardCreated(card: CreatedCard) {
-    setCards((prev) => [card, ...prev]);
+  function handleCardCreated(card: any, _timestamps: any[]) {
+    const newCard = { ...card, sections: [] };
+    setCards((prev) => [newCard, ...prev]);
     setModalVisible(false);
+    setSelectedCard(newCard);
+  }
+
+  function handleCardUpdated(updated: FullCard) {
+    setCards((prev) => prev.map((c) => c.id === updated.id ? updated : c));
+    setSelectedCard(updated);
+  }
+
+  function handleCardDeleted(deletedId: string) {
+    setCards((prev) => prev.filter((c) => c.id !== deletedId));
+    setSelectedCard(null);
   }
 
   const filtered = filter === 'All' ? cards : cards.filter((c) => c.type === filter);
@@ -89,10 +86,7 @@ export default function WorldLore() {
           return (
             <TouchableOpacity
               key={type}
-              style={[
-                styles.filterChip,
-                active && { backgroundColor: color + '22', borderColor: color + '66' },
-              ]}
+              style={[styles.filterChip, active && { backgroundColor: color + '22', borderColor: color + '66' }]}
               onPress={() => setFilter(type)}
             >
               <Text style={[styles.filterChipText, active && { color }]}>
@@ -105,13 +99,9 @@ export default function WorldLore() {
 
       {/* Card list */}
       {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color="#6366f1" />
-        </View>
+        <View style={styles.centered}><ActivityIndicator color="#6366f1" /></View>
       ) : fetchError ? (
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>{fetchError}</Text>
-        </View>
+        <View style={styles.centered}><Text style={styles.errorText}>{fetchError}</Text></View>
       ) : filtered.length === 0 ? (
         <View style={styles.centered}>
           <Text style={styles.emptyTitle}>
@@ -126,18 +116,25 @@ export default function WorldLore() {
           {filtered.map((card) => {
             const color = CARD_TYPE_COLOR[card.type] ?? '#6366f1';
             return (
-              <View key={card.id} style={styles.card}>
+              <TouchableOpacity
+                key={card.id}
+                style={styles.card}
+                onPress={() => setSelectedCard(card)}
+                activeOpacity={0.75}
+              >
                 <View style={[styles.cardTypeBar, { backgroundColor: color }]} />
                 <View style={styles.cardBody}>
                   <View style={[styles.typeTag, { backgroundColor: color + '22' }]}>
                     <Text style={[styles.typeTagText, { color }]}>{card.type}</Text>
                   </View>
                   <Text style={styles.cardTitle} numberOfLines={2}>{card.title}</Text>
-                  {card.content ? (
-                    <Text style={styles.cardContent} numberOfLines={3}>{card.content}</Text>
+                  {card.sections.length > 0 ? (
+                    <Text style={styles.cardMeta}>{card.sections.length} section{card.sections.length !== 1 ? 's' : ''}</Text>
+                  ) : card.content ? (
+                    <Text style={styles.cardContent} numberOfLines={2}>{card.content}</Text>
                   ) : null}
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           })}
         </ScrollView>
@@ -156,73 +153,52 @@ export default function WorldLore() {
         onClose={() => setModalVisible(false)}
         onCreated={handleCardCreated}
       />
+
+      {selectedCard && (
+        <CardView
+          card={selectedCard}
+          visible={!!selectedCard}
+          onClose={() => setSelectedCard(null)}
+          onUpdated={handleCardUpdated}
+          onDeleted={handleCardDeleted}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0f0f1a' },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    padding: 24,
-  },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24 },
   emptyTitle: { fontSize: 16, fontWeight: '700', color: '#ffffff' },
   emptySubtext: { fontSize: 13, color: '#8b8fa8', textAlign: 'center' },
   errorText: { fontSize: 12, color: '#ef4444' },
-  filterBar: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-    flexDirection: 'row',
-  },
+  filterBar: { paddingHorizontal: 16, paddingVertical: 12, gap: 8, flexDirection: 'row' },
   filterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#2d2d44',
-    backgroundColor: '#1a1a2e',
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
+    borderWidth: 1, borderColor: '#2d2d44', backgroundColor: '#1a1a2e',
   },
-  filterChipActive: {
-    backgroundColor: '#6366f122',
-    borderColor: '#6366f166',
-  },
+  filterChipActive: { backgroundColor: '#6366f122', borderColor: '#6366f166' },
   filterChipText: { fontSize: 12, fontWeight: '600', color: '#8b8fa8' },
   filterChipTextActive: { color: '#6366f1' },
   cardGrid: { padding: 16, gap: 12, paddingBottom: 100 },
   card: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#2d2d44',
-    overflow: 'hidden',
-    flexDirection: 'row',
+    backgroundColor: '#1a1a2e', borderRadius: 14, borderWidth: 1,
+    borderColor: '#2d2d44', overflow: 'hidden', flexDirection: 'row',
   },
   cardTypeBar: { width: 4 },
   cardBody: { flex: 1, padding: 14, gap: 6 },
-  typeTag: {
-    alignSelf: 'flex-start',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
+  typeTag: { alignSelf: 'flex-start', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   typeTagText: { fontSize: 11, fontWeight: '700' },
   cardTitle: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
   cardContent: { fontSize: 13, color: '#8b8fa8', lineHeight: 18 },
+  cardMeta: { fontSize: 12, color: '#4a4a6a' },
   fab: { position: 'absolute', bottom: 80, right: 20 },
   fabButton: {
-    backgroundColor: '#6366f1',
-    borderRadius: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
+    backgroundColor: '#6366f1', borderRadius: 24,
+    paddingVertical: 12, paddingHorizontal: 20,
+    shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4, shadowRadius: 8, elevation: 8,
   },
   fabText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
 });

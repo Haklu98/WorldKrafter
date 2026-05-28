@@ -4,10 +4,10 @@ import {
   TextInput, TouchableOpacity, ActivityIndicator, Switch,
 } from 'react-native';
 import { supabase } from '../../../../lib/supabase';
-import { GREGORIAN_PRESET } from './_constants';
-import { NumField, NamesField } from './_fields';
-import { F, S } from './_styles';
-import type { TimeFormat } from './_types';
+import { GREGORIAN_PRESET } from '../../../../lib/timeline/constants';
+import { NumField, NamesField } from '../../../../lib/timeline/fields';
+import { F, S } from '../../../../lib/timeline/styles';
+import type { TimeFormat } from '../../../../lib/timeline/types';
 
 type Props = {
   visible: boolean;

@@ -1,85 +1,46 @@
 import { useState } from 'react';
 import {
-  StyleSheet,
-  Text,
-  View,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
-  Modal,
-  Pressable,
-  FlatList,
+  StyleSheet, Text, View, TextInput, TouchableOpacity,
+  ActivityIndicator, ScrollView, Modal, Pressable, FlatList,
 } from 'react-native';
-import Marked from 'react-native-marked';
 import { CARD_TYPES, CARD_TYPE_COLOR, type CardType } from '../../../lib/cardTypes';
+import type { Timeline, TimelinePeriod } from '../../../lib/timeline/types';
+import SectionEditor, { type CardSection } from './_section-editor';
+
+type TimestampDraft = {
+  label: string; hint: string; year: string; month: string; day: string; required: boolean;
+  periodId: string | null;
+};
 
 type Props = {
   visible: boolean;
-  // Controlled field values passed in from the parent
   title: string;
   type: CardType;
   content: string;
   titleError: string;
   createError: string;
   creating: boolean;
+  timeline: Timeline | null;
+  periods: TimelinePeriod[];
+  timestamps: TimestampDraft[];
+  tsErrors: Record<number, string>;
   onChangeTitle: (v: string) => void;
   onChangeType: (v: CardType) => void;
   onChangeContent: (v: string) => void;
+  onUpdateTs: (i: number, field: 'year' | 'month' | 'day', value: string) => void;
+  onUpdateTsPeriod: (i: number, periodId: string | null) => void;
+  sections: CardSection[];
+  onChangeSections: (sections: CardSection[]) => void;
   onClose: () => void;
   onSubmit: () => void;
 };
 
-type ToolbarAction = {
-  label: string;
-  prefix: string;
-  suffix: string;
-  block?: boolean;
-};
-
-const TOOLBAR: ToolbarAction[] = [
-  { label: 'B',   prefix: '**', suffix: '**' },
-  { label: 'I',   prefix: '_',  suffix: '_' },
-  { label: 'H1',  prefix: '# ', suffix: '', block: true },
-  { label: 'H2',  prefix: '## ', suffix: '', block: true },
-  { label: 'H3',  prefix: '### ', suffix: '', block: true },
-  { label: '—',   prefix: '\n---\n', suffix: '', block: true },
-  { label: '• ',  prefix: '- ', suffix: '', block: true },
-  { label: '1.',  prefix: '1. ', suffix: '', block: true },
-  { label: '> ',  prefix: '> ', suffix: '', block: true },
-];
-
-function insertMarkdown(
-  text: string,
-  action: ToolbarAction,
-  onChange: (v: string) => void
-) {
-  // Simple append — a full cursor-aware insert requires a native ref trick
-  // that doesn't work cross-platform in RN web. Append to end instead.
-  const trimmed = text.endsWith('\n') ? text : text + '\n';
-  if (action.block) {
-    onChange(trimmed + action.prefix);
-  } else {
-    onChange(text + action.prefix + 'text' + action.suffix);
-  }
-}
-
 export default function CardEditorDesktop({
-  visible,
-  title,
-  type,
-  content,
-  titleError,
-  createError,
-  creating,
-  onChangeTitle,
-  onChangeType,
-  onChangeContent,
-  onClose,
-  onSubmit,
+  visible, title, type, titleError, createError, creating,
+  timeline, periods, timestamps, tsErrors, sections,
+  onChangeTitle, onChangeType, onUpdateTs, onUpdateTsPeriod, onChangeSections, onClose, onSubmit,
 }: Props) {
   const [typePickerOpen, setTypePickerOpen] = useState(false);
-  const [tab, setTab] = useState<'write' | 'preview'>('write');
   const typeColor = CARD_TYPE_COLOR[type];
 
   return (
@@ -87,68 +48,66 @@ export default function CardEditorDesktop({
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.panel} onPress={() => {}}>
 
-          {/* ── Top bar ── */}
+          {/* Top bar */}
           <View style={styles.topBar}>
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <Text style={styles.closeBtnText}>✕</Text>
-            </TouchableOpacity>
+            <Text style={styles.panelTitle}>New card</Text>
             <View style={styles.topBarRight}>
               {createError ? <Text style={styles.errorText}>{createError}</Text> : null}
-              <TouchableOpacity
-                style={[styles.saveBtn, creating && styles.disabled]}
-                onPress={onSubmit}
-                disabled={creating}
-              >
-                {creating
-                  ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={styles.saveBtnText}>Save card</Text>}
+              <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+                <Text style={styles.closeBtnText}>✕</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* ── Wiki header row ── */}
-          <View style={styles.wikiHeader}>
-            {/* Left: title + type */}
-            <View style={styles.wikiMeta}>
+          {/* Body */}
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={styles.body}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Title */}
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Name / Title</Text>
               <TextInput
                 style={[styles.titleInput, titleError ? styles.titleInputError : null]}
-                placeholder="Card name…"
+                placeholder="e.g. Aldric the Bold"
                 placeholderTextColor="#4a4a6a"
                 value={title}
                 onChangeText={onChangeTitle}
               />
               {titleError ? <Text style={styles.errorText}>{titleError}</Text> : null}
+            </View>
 
-              {/* Type picker inline */}
-              <View style={styles.typeRow}>
-                <TouchableOpacity
-                  style={[styles.typeBadge, { backgroundColor: typeColor + '22', borderColor: typeColor + '55' }]}
-                  onPress={() => setTypePickerOpen((v) => !v)}
-                >
-                  <Text style={[styles.typeBadgeText, { color: typeColor }]}>{type}</Text>
-                  <Text style={[styles.chevron, { color: typeColor }]}>
-                    {typePickerOpen ? ' ▲' : ' ▼'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
+            {/* Type picker */}
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Type</Text>
+              <TouchableOpacity
+                style={[styles.typeTrigger, { borderColor: typeColor + '55' }]}
+                onPress={() => setTypePickerOpen((v) => !v)}
+              >
+                <View style={[styles.typeTag, { backgroundColor: typeColor + '22' }]}>
+                  <Text style={[styles.typeTagText, { color: typeColor }]}>{type}</Text>
+                </View>
+                <Text style={styles.chevron}>{typePickerOpen ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
               {typePickerOpen && (
-                <View style={styles.typeDropdown}>
+                <View style={styles.typeList}>
                   <FlatList
                     data={CARD_TYPES}
                     keyExtractor={(t) => t}
-                    style={{ maxHeight: 220 }}
+                    style={{ maxHeight: 240 }}
                     scrollEnabled
                     renderItem={({ item }) => {
                       const active = item === type;
                       const c = CARD_TYPE_COLOR[item];
                       return (
                         <TouchableOpacity
-                          style={[styles.typeDropdownItem, active && styles.typeDropdownItemActive]}
+                          style={[styles.typeListItem, active && styles.typeListItemActive]}
                           onPress={() => { onChangeType(item); setTypePickerOpen(false); }}
                         >
-                          <View style={[styles.typeTagSmall, { backgroundColor: c + '22' }]}>
-                            <Text style={[styles.typeTagSmallText, { color: c }]}>{item}</Text>
+                          <View style={[styles.typeTag, { backgroundColor: c + '22' }]}>
+                            <Text style={[styles.typeTagText, { color: c }]}>{item}</Text>
                           </View>
                         </TouchableOpacity>
                       );
@@ -158,84 +117,110 @@ export default function CardEditorDesktop({
               )}
             </View>
 
-            {/* Right: placeholder image */}
-            <View style={styles.imagePlaceholder}>
-              <Text style={styles.imagePlaceholderIcon}>🖼</Text>
-              <Text style={styles.imagePlaceholderLabel}>Image</Text>
-            </View>
-          </View>
+            {/* Sections */}
+            <View style={styles.divider} />
+            <SectionEditor sections={sections} onChange={onChangeSections} />
 
-          <View style={styles.divider} />
+            {/* Timestamps */}
+            {timeline && (
+              <View style={styles.tsSection}>
+                <View style={styles.divider} />
+                <Text style={styles.tsHeader}>Dates on timeline</Text>
+                <View style={styles.tsGrid}>
+                  {timestamps.map((ts, i) => (
+                    <View key={ts.label} style={styles.tsBlock}>
+                      <Text style={styles.tsLabel}>
+                        {ts.label}
+                        {ts.required ? <Text style={styles.tsRequired}> *</Text> : null}
+                      </Text>
+                      <Text style={styles.tsHint}>{ts.hint}</Text>
 
-          {/* ── Editor area ── */}
-          <View style={styles.editorArea}>
-            {/* Toolbar + tab switcher */}
-            <View style={styles.editorToolbar}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.toolbarScroll}>
-                {TOOLBAR.map((action) => (
-                  <TouchableOpacity
-                    key={action.label}
-                    style={styles.toolbarBtn}
-                    onPress={() => insertMarkdown(content, action, onChangeContent)}
-                  >
-                    <Text style={styles.toolbarBtnText}>{action.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-              <View style={styles.tabSwitcher}>
-                <TouchableOpacity
-                  style={[styles.tabBtn, tab === 'write' && styles.tabBtnActive]}
-                  onPress={() => setTab('write')}
-                >
-                  <Text style={[styles.tabBtnText, tab === 'write' && styles.tabBtnTextActive]}>
-                    Write
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.tabBtn, tab === 'preview' && styles.tabBtnActive]}
-                  onPress={() => setTab('preview')}
-                >
-                  <Text style={[styles.tabBtnText, tab === 'preview' && styles.tabBtnTextActive]}>
-                    Preview
-                  </Text>
-                </TouchableOpacity>
+                      {/* Period picker for era/age timelines */}
+                      {periods.length > 0 && (
+                        <View style={{ gap: 4 }}>
+                          <Text style={styles.tsFieldLabel}>
+                            {timeline!.tracking_type === 'age' ? 'Age' : 'Era'}
+                          </Text>
+                          <View style={styles.periodRow}>
+                            {periods.map((p) => {
+                              const active = ts.periodId === p.id;
+                              const label = timeline!.tracking_type === 'age' && p.name ? p.name : `Era ${p.position}`;
+                              const chipLabel = `${label} · ${p.years}y`;
+                              return (
+                                <TouchableOpacity
+                                  key={p.id}
+                                  style={[styles.periodChip, active && styles.periodChipActive]}
+                                  onPress={() => onUpdateTsPeriod(i, active ? null : p.id)}
+                                >
+                                  <Text style={[styles.periodChipText, active && styles.periodChipTextActive]}>
+                                    {chipLabel}
+                                  </Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        </View>
+                      )}
+
+                      <View style={styles.twoCol}>
+                        <View style={[styles.tsField, { flex: 2 }]}>
+                          <Text style={styles.tsFieldLabel}>
+                            {periods.length > 0 ? 'Year within period' : 'Year'}
+                          </Text>
+                          <TextInput
+                            style={[styles.tsInput, tsErrors[i] ? styles.tsInputError : null]}
+                            value={ts.year}
+                            onChangeText={(v) => onUpdateTs(i, 'year', v)}
+                            keyboardType="numeric"
+                            placeholder="e.g. 450"
+                            placeholderTextColor="#4a4a6a"
+                          />
+                          {tsErrors[i] ? <Text style={styles.errorText}>{tsErrors[i]}</Text> : null}
+                        </View>
+                        <View style={[styles.tsField, { flex: 1 }]}>
+                          <Text style={styles.tsFieldLabel}>Month</Text>
+                          <TextInput
+                            style={styles.tsInput}
+                            value={ts.month}
+                            onChangeText={(v) => onUpdateTs(i, 'month', v)}
+                            keyboardType="numeric"
+                            placeholder="—"
+                            placeholderTextColor="#4a4a6a"
+                          />
+                        </View>
+                        <View style={[styles.tsField, { flex: 1 }]}>
+                          <Text style={styles.tsFieldLabel}>Day</Text>
+                          <TextInput
+                            style={styles.tsInput}
+                            value={ts.day}
+                            onChangeText={(v) => onUpdateTs(i, 'day', v)}
+                            keyboardType="numeric"
+                            placeholder="—"
+                            placeholderTextColor="#4a4a6a"
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
               </View>
-            </View>
-
-            {/* Editor / Preview pane */}
-            {tab === 'write' ? (
-              <TextInput
-                style={styles.markdownInput}
-                multiline
-                value={content}
-                onChangeText={onChangeContent}
-                placeholder={'Write in markdown…\n\n# Heading\n**bold**, _italic_\n- list item'}
-                placeholderTextColor="#4a4a6a"
-                textAlignVertical="top"
-              />
-            ) : (
-              <ScrollView style={styles.previewScroll} contentContainerStyle={styles.previewContent}>
-                {content.trim() ? (
-                  <Marked
-                    value={content}
-                    flatListProps={{ scrollEnabled: false }}
-                    theme={{
-                      text: { color: '#c0c4d8', fontSize: 15, lineHeight: 24 },
-                      heading1: { color: '#ffffff', fontSize: 26, fontWeight: '800', marginBottom: 8 },
-                      heading2: { color: '#ffffff', fontSize: 21, fontWeight: '700', marginBottom: 6 },
-                      heading3: { color: '#e2e4f0', fontSize: 17, fontWeight: '700', marginBottom: 4 },
-                      strong: { color: '#ffffff', fontWeight: '700' },
-                      em: { color: '#c0c4d8', fontStyle: 'italic' },
-                      blockquote: { backgroundColor: '#1e1e35', borderLeftColor: '#6366f1', borderLeftWidth: 3, paddingLeft: 12, paddingVertical: 4 },
-                      code: { backgroundColor: '#1e1e35', color: '#a5b4fc', fontFamily: 'monospace', borderRadius: 4, paddingHorizontal: 4 },
-                      hr: { backgroundColor: '#2d2d44', height: 1, marginVertical: 16 },
-                    }}
-                  />
-                ) : (
-                  <Text style={styles.previewEmpty}>Nothing to preview yet.</Text>
-                )}
-              </ScrollView>
             )}
+          </ScrollView>
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.saveBtn, creating && styles.disabled]}
+              onPress={onSubmit}
+              disabled={creating}
+            >
+              {creating
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <Text style={styles.saveBtnText}>Create card</Text>}
+            </TouchableOpacity>
           </View>
 
         </Pressable>
@@ -246,165 +231,97 @@ export default function CardEditorDesktop({
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center', alignItems: 'center', padding: 32,
   },
   panel: {
-    backgroundColor: '#13131f',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#2d2d44',
-    width: '100%',
-    maxWidth: 900,
-    maxHeight: '90%',
-    overflow: 'hidden',
-    flexDirection: 'column',
+    backgroundColor: '#13131f', borderRadius: 20, borderWidth: 1, borderColor: '#2d2d44',
+    width: '100%', maxWidth: 560, maxHeight: '90%', overflow: 'hidden',
   },
-
-  // Top bar
   topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1e1e30',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 24, paddingVertical: 16,
+    borderBottomWidth: 1, borderBottomColor: '#1e1e30',
   },
+  panelTitle: { fontSize: 20, fontWeight: '800', color: '#ffffff' },
+  topBarRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#2d2d44',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 32, height: 32, borderRadius: 8, borderWidth: 1,
+    borderColor: '#2d2d44', alignItems: 'center', justifyContent: 'center',
   },
   closeBtnText: { color: '#8b8fa8', fontSize: 14 },
-  topBarRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  errorText: { fontSize: 12, color: '#ef4444' },
+
+  body: { padding: 24, gap: 16, paddingBottom: 8 },
+
+  field: { gap: 6 },
+  fieldLabel: { fontSize: 13, fontWeight: '600', color: '#c0c4d8' },
+  titleInput: {
+    backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#2d2d44',
+    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
+    fontSize: 16, color: '#ffffff', fontWeight: '600',
+  },
+  titleInputError: { borderColor: '#ef4444' },
+
+  typeTrigger: {
+    backgroundColor: '#1a1a2e', borderWidth: 1, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
+  typeTag: { alignSelf: 'flex-start', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  typeTagText: { fontSize: 12, fontWeight: '700' },
+  chevron: { fontSize: 11, color: '#8b8fa8' },
+  typeList: {
+    backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#2d2d44',
+    borderRadius: 12, overflow: 'hidden', marginTop: 4,
+  },
+  typeListItem: {
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: '#2d2d44',
+  },
+  typeListItemActive: { backgroundColor: '#23233a' },
+
+  divider: { height: 1, backgroundColor: '#1e1e30' },
+  tsSection: { gap: 12 },
+  tsHeader: { fontSize: 12, fontWeight: '700', color: '#8b8fa8', textTransform: 'uppercase', letterSpacing: 0.6 },
+  tsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  tsBlock: {
+    backgroundColor: '#1a1a2e', borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: '#2d2d44', gap: 8, minWidth: 220, flex: 1,
+  },
+  tsLabel: { fontSize: 13, fontWeight: '700', color: '#ffffff' },
+  tsRequired: { color: '#6366f1' },
+  tsHint: { fontSize: 11, color: '#8b8fa8', marginTop: -4 },
+  twoCol: { flexDirection: 'row', gap: 10 },
+  periodRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  periodChip: {
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5,
+    borderWidth: 1, borderColor: '#2d2d44', backgroundColor: '#13131f',
+  },
+  periodChipActive: { borderColor: '#6366f1', backgroundColor: '#6366f122' },
+  periodChipText: { fontSize: 11, fontWeight: '600', color: '#8b8fa8' },
+  periodChipTextActive: { color: '#6366f1' },
+  tsField: { gap: 4 },
+  tsFieldLabel: { fontSize: 12, fontWeight: '600', color: '#c0c4d8' },
+  tsInput: {
+    backgroundColor: '#13131f', borderWidth: 1, borderColor: '#2d2d44',
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, fontSize: 13, color: '#ffffff',
+  },
+  tsInputError: { borderColor: '#ef4444' },
+
+  footer: {
+    flexDirection: 'row', gap: 12, padding: 24,
+    borderTopWidth: 1, borderTopColor: '#1e1e30',
+  },
+  cancelBtn: {
+    flex: 1, borderWidth: 1, borderColor: '#2d2d44',
+    borderRadius: 12, paddingVertical: 12, alignItems: 'center',
+  },
+  cancelBtnText: { color: '#8b8fa8', fontSize: 14, fontWeight: '600' },
   saveBtn: {
-    backgroundColor: '#6366f1',
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 18,
+    flex: 1, backgroundColor: '#6366f1',
+    borderRadius: 12, paddingVertical: 12, alignItems: 'center',
   },
   saveBtnText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
-  errorText: { fontSize: 12, color: '#ef4444' },
   disabled: { opacity: 0.6 },
-
-  // Wiki header
-  wikiHeader: {
-    flexDirection: 'row',
-    padding: 24,
-    paddingBottom: 16,
-    gap: 24,
-    alignItems: 'flex-start',
-  },
-  wikiMeta: { flex: 1, gap: 10 },
-  titleInput: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#2d2d44',
-    paddingBottom: 8,
-    letterSpacing: -0.5,
-  },
-  titleInputError: { borderBottomColor: '#ef4444' },
-  typeRow: { flexDirection: 'row', alignItems: 'center' },
-  typeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    alignSelf: 'flex-start',
-  },
-  typeBadgeText: { fontSize: 13, fontWeight: '700' },
-  chevron: { fontSize: 10 },
-  typeDropdown: {
-    backgroundColor: '#1a1a2e',
-    borderWidth: 1,
-    borderColor: '#2d2d44',
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginTop: 4,
-    zIndex: 20,
-  },
-  typeDropdownItem: {
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2d2d44',
-  },
-  typeDropdownItemActive: { backgroundColor: '#23233a' },
-  typeTagSmall: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start' },
-  typeTagSmallText: { fontSize: 12, fontWeight: '700' },
-
-  // Placeholder image
-  imagePlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#2d2d44',
-    borderStyle: 'dashed',
-    backgroundColor: '#1a1a2e',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  imagePlaceholderIcon: { fontSize: 28 },
-  imagePlaceholderLabel: { fontSize: 11, color: '#4a4a6a', fontWeight: '500' },
-
-  divider: { height: 1, backgroundColor: '#1e1e30', marginHorizontal: 24 },
-
-  // Editor
-  editorArea: { flex: 1, flexDirection: 'column', minHeight: 360 },
-  editorToolbar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#1e1e30',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    gap: 8,
-  },
-  toolbarScroll: { flex: 1 },
-  toolbarBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#2d2d44',
-    marginRight: 4,
-    backgroundColor: '#1a1a2e',
-  },
-  toolbarBtnText: { color: '#c0c4d8', fontSize: 12, fontWeight: '700' },
-  tabSwitcher: { flexDirection: 'row', gap: 2 },
-  tabBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 6,
-  },
-  tabBtnActive: { backgroundColor: '#1e1e35' },
-  tabBtnText: { fontSize: 12, color: '#8b8fa8', fontWeight: '600' },
-  tabBtnTextActive: { color: '#ffffff' },
-  markdownInput: {
-    flex: 1,
-    color: '#c0c4d8',
-    fontSize: 15,
-    lineHeight: 24,
-    padding: 20,
-    fontFamily: 'monospace',
-    textAlignVertical: 'top',
-    minHeight: 300,
-  },
-  previewScroll: { flex: 1 },
-  previewContent: { padding: 20, paddingBottom: 40 },
-  previewEmpty: { color: '#4a4a6a', fontSize: 14, fontStyle: 'italic' },
 });

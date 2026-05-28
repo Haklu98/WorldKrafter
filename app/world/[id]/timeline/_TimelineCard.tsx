@@ -1,7 +1,8 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import type { Timeline, TimeFormat, TimelinePeriod } from './_types';
-import { TRACKING_TYPE_LABELS } from './_constants';
-import { S } from './_styles';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import type { Timeline, TimeFormat, TimelinePeriod } from '../../../../lib/timeline/types';
+import { TRACKING_TYPE_LABELS } from '../../../../lib/timeline/constants';
+import { S } from '../../../../lib/timeline/styles';
+import { confirmAction } from '../../../../lib/timeline/confirm';
 
 type Props = {
   timeline: Timeline;
@@ -12,13 +13,10 @@ type Props = {
 
 export default function TimelineCard({ timeline, format, periods, onDelete }: Props) {
   function confirmDelete() {
-    Alert.alert(
+    confirmAction(
       'Delete timeline',
       `Delete "${timeline.name}"? All events on this timeline will also be removed.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: onDelete },
-      ]
+      onDelete
     );
   }
 
