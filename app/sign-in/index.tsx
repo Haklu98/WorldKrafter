@@ -11,15 +11,11 @@ import {
   Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../navigation';
-import { supabase } from '../../../lib/supabase';
+import { useRouter } from 'expo-router';
+import { supabase } from '../../lib/supabase';
 
-type Props = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'SignIn'>;
-};
-
-export default function SignInPage({ navigation }: Props) {
+export default function SignInPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -94,7 +90,7 @@ export default function SignInPage({ navigation }: Props) {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Don't have an account? </Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+        <TouchableOpacity onPress={() => router.push('/register')}>
           <Text style={styles.footerLink}>Register</Text>
         </TouchableOpacity>
       </View>

@@ -20,3 +20,5 @@ site_url = "http://localhost:8081"
 additional_redirect_urls = ["https://localhost:8081"]
 jwt_expiry = 3600
 enable_signup = true
+# Require users to confirm their email before signing in
+enable_confirmations = true

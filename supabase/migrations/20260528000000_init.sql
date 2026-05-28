@@ -7,23 +7,25 @@ create extension if not exists "uuid-ossp";
 -- Profiles table (extends Supabase auth.users)
 create table if not exists public.profiles (
   id          uuid primary key references auth.users (id) on delete cascade,
-  username    text unique,
+  username    text unique not null,
   full_name   text,
   avatar_url  text,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
 
--- Automatically create a profile row when a new user signs up
+-- Automatically create a profile row when a new user signs up.
+-- Reads username from raw_user_meta_data, which is set by the app on signUp.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer set search_path = public
 as $$
 begin
-  insert into public.profiles (id, full_name, avatar_url)
+  insert into public.profiles (id, username, full_name, avatar_url)
   values (
     new.id,
+    new.raw_user_meta_data ->> 'username',
     new.raw_user_meta_data ->> 'full_name',
     new.raw_user_meta_data ->> 'avatar_url'
   );

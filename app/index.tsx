@@ -1,13 +1,10 @@
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../navigation';
+import { useRouter } from 'expo-router';
 
-type Props = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'Landing'>;
-};
+export default function LandingPage() {
+  const router = useRouter();
 
-export default function LandingPage({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -20,14 +17,14 @@ export default function LandingPage({ navigation }: Props) {
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.primaryButton}
-          onPress={() => navigation.navigate('Register')}
+          onPress={() => router.push('/register')}
         >
           <Text style={styles.primaryButtonText}>Get Started</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.secondaryButton}
-          onPress={() => navigation.navigate('SignIn')}
+          onPress={() => router.push('/sign-in')}
         >
           <Text style={styles.secondaryButtonText}>Sign In</Text>
         </TouchableOpacity>
