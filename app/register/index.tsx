@@ -59,6 +59,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
@@ -118,17 +119,27 @@ export default function RegisterPage() {
     if (error) {
       Alert.alert('Registration failed', error.message);
     } else {
-      Alert.alert(
-        'Check your email',
-        'We sent you a confirmation link. Please verify your email before signing in.',
-        [{ text: 'OK', onPress: () => router.replace('/sign-in') }]
-      );
+      setSuccess(true);
+      setTimeout(() => router.replace('/sign-in'), 2500);
     }
   }
 
   const passwordStrength = password ? getPasswordStrength(password) : null;
   const confirmMismatch =
     touched.confirmPassword && confirmPassword.length > 0 && password !== confirmPassword;
+
+  if (success) {
+    return (
+      <View style={styles.successContainer}>
+        <StatusBar style="light" />
+        <Text style={styles.successIcon}>✓</Text>
+        <Text style={styles.successTitle}>Registration successful</Text>
+        <Text style={styles.successSubtitle}>
+          Check your email for a confirmation link, then sign in.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -446,5 +457,29 @@ const styles = StyleSheet.create({
     color: '#6366f1',
     fontSize: 14,
     fontWeight: '600',
+  },
+  successContainer: {
+    flex: 1,
+    backgroundColor: '#0f0f1a',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+    gap: 16,
+  },
+  successIcon: {
+    fontSize: 64,
+    color: '#22c55e',
+  },
+  successTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#ffffff',
+    textAlign: 'center',
+  },
+  successSubtitle: {
+    fontSize: 15,
+    color: '#8b8fa8',
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });

@@ -32,8 +32,9 @@ export default function SignInPage() {
 
     if (error) {
       Alert.alert('Sign in failed', error.message);
+    } else {
+      router.replace('/worlds');
     }
-    // On success, navigate to your main app screen here
   }
 
   return (
