@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { CARD_TYPE_COLOR, type CardType } from '../../../lib/cardTypes';
 import WorldHeader from './_header';
+import CreateCardModal, { type CreatedCard } from './_create-card-modal';
 
 type World = {
   id: string;
@@ -40,6 +41,7 @@ export default function WorldHome() {
   const [world, setWorld] = useState<World | null>(null);
   const [recentCards, setRecentCards] = useState<RecentCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
 
   const fetchData = useCallback(async () => {
     const [worldRes, cardsRes] = await Promise.all([
@@ -64,6 +66,12 @@ export default function WorldHome() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  function handleCardCreated(card: CreatedCard) {
+    // Prepend to recent list and trim to 10
+    setRecentCards((prev) => [card, ...prev].slice(0, 10));
+    setModalVisible(false);
+  }
 
   if (loading) {
     return (
@@ -90,13 +98,21 @@ export default function WorldHome() {
 
         {/* Recent edits */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent edits</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent edits</Text>
+            <TouchableOpacity
+              style={styles.createCardButton}
+              onPress={() => setModalVisible(true)}
+            >
+              <Text style={styles.createCardButtonText}>+ Create a card</Text>
+            </TouchableOpacity>
+          </View>
 
           {recentCards.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>No recent edits</Text>
               <Text style={styles.emptySubtext}>
-                Head to Lore to create your first card.
+                Create your first card to get started.
               </Text>
             </View>
           ) : (
@@ -124,6 +140,13 @@ export default function WorldHome() {
           )}
         </View>
       </ScrollView>
+
+      <CreateCardModal
+        visible={modalVisible}
+        worldId={id}
+        onClose={() => setModalVisible(false)}
+        onCreated={handleCardCreated}
+      />
     </View>
   );
 }
@@ -168,8 +191,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginTop: 4,
   },
-  section: {
-    gap: 12,
+  section: { gap: 12 },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   sectionTitle: {
     fontSize: 13,
@@ -177,6 +203,17 @@ const styles = StyleSheet.create({
     color: '#8b8fa8',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+  },
+  createCardButton: {
+    backgroundColor: '#6366f1',
+    borderRadius: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+  },
+  createCardButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
   },
   emptyState: {
     backgroundColor: '#1a1a2e',
@@ -187,19 +224,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  emptyText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  emptySubtext: {
-    fontSize: 13,
-    color: '#8b8fa8',
-    textAlign: 'center',
-  },
-  cardList: {
-    gap: 8,
-  },
+  emptyText: { fontSize: 15, fontWeight: '600', color: '#ffffff' },
+  emptySubtext: { fontSize: 13, color: '#8b8fa8', textAlign: 'center' },
+  cardList: { gap: 8 },
   recentCard: {
     backgroundColor: '#1a1a2e',
     borderRadius: 12,
@@ -215,18 +242,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  typeTagText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
+  typeTagText: { fontSize: 11, fontWeight: '700' },
   recentCardTitle: {
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
     color: '#ffffff',
   },
-  recentCardTime: {
-    fontSize: 12,
-    color: '#4a4a6a',
-  },
+  recentCardTime: { fontSize: 12, color: '#4a4a6a' },
 });
