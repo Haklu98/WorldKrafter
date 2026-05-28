@@ -1,0 +1,22 @@
+# Supabase project configuration
+# Used by the Supabase CLI and GitHub integration
+
+[project]
+# Set this to your Supabase project ref (found in project settings)
+# project_id = "your-project-ref"
+
+[db]
+# Port for the local Supabase database (used with `supabase start`)
+port = 54322
+
+[api]
+port = 54321
+
+[studio]
+port = 54323
+
+[auth]
+site_url = "http://localhost:8081"
+additional_redirect_urls = ["https://localhost:8081"]
+jwt_expiry = 3600
+enable_signup = true
