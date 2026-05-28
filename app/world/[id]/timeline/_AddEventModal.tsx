@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Modal, Pressable, ScrollView, View, Text,
-  TextInput, TouchableOpacity, ActivityIndicator, FlatList,
+  TextInput, TouchableOpacity, ActivityIndicator, FlatList, StyleSheet,
 } from 'react-native';
 import { supabase } from '../../../../lib/supabase';
 import { CARD_TYPES, CARD_TYPE_COLOR, type CardType } from '../../../../lib/cardTypes';
@@ -290,7 +290,7 @@ export default function AddEventModal({ visible, worldId, timeline, onClose, onC
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create({ // eslint-disable-line @typescript-eslint/no-unused-vars
   typeTrigger: {
     backgroundColor: '#1a1a2e', borderWidth: 1, borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 12,
@@ -318,6 +318,3 @@ const styles = StyleSheet.create({
   tsRequired: { color: '#6366f1' },
   tsHint: { fontSize: 11, color: '#8b8fa8', marginTop: -4 },
 });
-
-// Need StyleSheet import
-import { StyleSheet } from 'react-native';

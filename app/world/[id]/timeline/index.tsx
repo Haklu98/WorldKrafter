@@ -53,7 +53,6 @@ export default function WorldTimeline() {
     setFormats(fmtRes.data ?? []);
 
     if (tl) {
-      // Fetch periods for era/age timelines
       if (tl.tracking_type === 'era' || tl.tracking_type === 'age') {
         const { data: pData } = await supabase
           .from('timeline_periods')
@@ -65,7 +64,6 @@ export default function WorldTimeline() {
         setPeriods([]);
       }
 
-      // Fetch events (card_timestamps joined with cards)
       const { data: evData } = await supabase
         .from('card_timestamps')
         .select(`
@@ -101,6 +99,24 @@ export default function WorldTimeline() {
       [...prev, ...newTs].sort((a, b) => a.sort_key - b.sort_key)
     );
     setShowAddEvent(false);
+  }
+
+  async function handleDeleteEvent(eventId: string) {
+    await supabase.from('card_timestamps').delete().eq('id', eventId);
+    setEvents((prev) => prev.filter((e) => e.id !== eventId));
+  }
+
+  async function handleDeleteTimeline() {
+    if (!timeline) return;
+    await supabase.from('timelines').delete().eq('id', timeline.id);
+    setTimeline(null);
+    setPeriods([]);
+    setEvents([]);
+  }
+
+  async function handleDeleteFormat(formatId: string) {
+    await supabase.from('time_formats').delete().eq('id', formatId);
+    setFormats((prev) => prev.filter((f) => f.id !== formatId));
   }
 
   const activeFormat = formats.find((f) => f.id === timeline?.time_format_id) ?? null;
@@ -146,7 +162,6 @@ export default function WorldTimeline() {
             <View style={S.sectionHeader}>
               <Text style={S.sectionTitle}>{timeline.name}</Text>
               <View style={{ flexDirection: 'row', gap: 6 }}>
-                {/* Orientation toggle */}
                 <TouchableOpacity
                   style={[S.addBtn, orientation === 'vertical' && { borderColor: '#6366f1' }]}
                   onPress={() => setOrientation('vertical')}
@@ -163,7 +178,6 @@ export default function WorldTimeline() {
                     ↔ Horizontal
                   </Text>
                 </TouchableOpacity>
-                {/* Add event */}
                 <TouchableOpacity
                   style={[S.addBtn, { backgroundColor: '#6366f1', borderColor: '#6366f1' }]}
                   onPress={() => setShowAddEvent(true)}
@@ -181,11 +195,17 @@ export default function WorldTimeline() {
                 events={events}
                 orientation={orientation}
                 onAddEvent={() => setShowAddEvent(true)}
+                onDeleteEvent={handleDeleteEvent}
               />
             </View>
 
             {/* Summary card */}
-            <TimelineCard timeline={timeline} format={activeFormat} periods={periods} />
+            <TimelineCard
+              timeline={timeline}
+              format={activeFormat}
+              periods={periods}
+              onDelete={handleDeleteTimeline}
+            />
           </View>
         )}
 
@@ -202,9 +222,22 @@ export default function WorldTimeline() {
               <Text style={S.emptyCardText}>No time formats yet</Text>
             </View>
           ) : (
-            formats.map((fmt) => <FormatCard key={fmt.id} fmt={fmt} />)
+            formats.map((fmt) => (
+              <FormatCard
+                key={fmt.id}
+                fmt={fmt}
+                onDelete={() => handleDeleteFormat(fmt.id)}
+              />
+            ))
           )}
         </View>
+
+        {/* ── Create timeline button (when no timeline exists) ── */}
+        {!timeline && formats.length > 0 && (
+          <TouchableOpacity style={S.primaryBtn} onPress={() => setShowTimelineModal(true)}>
+            <Text style={S.primaryBtnText}>Create a timeline</Text>
+          </TouchableOpacity>
+        )}
 
       </ScrollView>
 

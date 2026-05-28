@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import type { Timeline, TimeFormat, TimelinePeriod } from './_types';
 import { TRACKING_TYPE_LABELS } from './_constants';
 import { S } from './_styles';
@@ -7,21 +7,36 @@ type Props = {
   timeline: Timeline;
   format: TimeFormat | null;
   periods: TimelinePeriod[];
+  onDelete: () => void;
 };
 
-export default function TimelineCard({ timeline, format, periods }: Props) {
+export default function TimelineCard({ timeline, format, periods, onDelete }: Props) {
+  function confirmDelete() {
+    Alert.alert(
+      'Delete timeline',
+      `Delete "${timeline.name}"? All events on this timeline will also be removed.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: onDelete },
+      ]
+    );
+  }
+
   return (
     <View style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.name}>{timeline.name}</Text>
-        <View style={S.badge}>
-          <Text style={S.badgeText}>{TRACKING_TYPE_LABELS[timeline.tracking_type]}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={S.badge}>
+            <Text style={S.badgeText}>{TRACKING_TYPE_LABELS[timeline.tracking_type]}</Text>
+          </View>
+          <TouchableOpacity style={styles.deleteBtn} onPress={confirmDelete}>
+            <Text style={styles.deleteBtnText}>Delete</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
-      {format && (
-        <Text style={styles.meta}>Using {format.name}</Text>
-      )}
+      {format && <Text style={styles.meta}>Using {format.name}</Text>}
 
       {timeline.tracking_type === 'before_after' && (
         <View style={styles.baRow}>
@@ -41,17 +56,12 @@ export default function TimelineCard({ timeline, format, periods }: Props) {
               p.months > 0 ? `${p.months}mo` : null,
               p.days > 0 ? `${p.days}d` : null,
             ].filter(Boolean);
-
             return (
               <View key={p.id} style={styles.chip}>
                 <Text style={styles.chipText}>
-                  {timeline.tracking_type === 'age' && p.name
-                    ? p.name
-                    : `Era ${p.position}`}
+                  {timeline.tracking_type === 'age' && p.name ? p.name : `Era ${p.position}`}
                 </Text>
-                <Text style={styles.chipSub}>
-                  {durationParts.join(' ') || '—'}
-                </Text>
+                <Text style={styles.chipSub}>{durationParts.join(' ') || '—'}</Text>
               </View>
             );
           })}
@@ -69,12 +79,15 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   name: { fontSize: 18, fontWeight: '800', color: '#ffffff', flex: 1 },
   meta: { fontSize: 13, color: '#8b8fa8' },
-
+  deleteBtn: {
+    borderWidth: 1, borderColor: '#ef444444', borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 4,
+  },
+  deleteBtnText: { fontSize: 12, color: '#ef4444', fontWeight: '600' },
   baRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
   baLabel: { fontSize: 13, fontWeight: '700', color: '#6366f1' },
   baDivider: { flex: 1, height: 1, backgroundColor: '#2d2d44' },
   baPivot: { fontSize: 12, color: '#8b8fa8', fontStyle: 'italic' },
-
   periodsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   chip: {
     backgroundColor: '#23233a', borderRadius: 8, paddingHorizontal: 10,
