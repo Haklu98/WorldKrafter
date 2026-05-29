@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform,
+  View, Text, ScrollView, TouchableOpacity, Pressable, StyleSheet, Platform,
 } from 'react-native';
 import { CARD_TYPE_COLOR } from '../../../../lib/cardTypes';
 import type { CardTimestamp, Timeline, TimelinePeriod } from '../../../../lib/timeline/types';
@@ -79,7 +79,7 @@ function RotatedAxisLabel({ text }: { text: string }) {
 
 const RAL = StyleSheet.create({
   wrap: {
-    width: 96,
+    width: 140,
     height: 24,
     alignItems: 'center',
     justifyContent: 'center',
@@ -88,7 +88,7 @@ const RAL = StyleSheet.create({
     color: '#9ca3af',
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: 1,
     transform: [{ rotate: '-90deg' }],
   },
 });
@@ -304,61 +304,6 @@ const CD = StyleSheet.create({
   tooltipDel: { fontSize: 11, color: '#4a4a6a' },
 });
 
-// ─── Period header row (vertical) ─────────────────────────────────────────────
-
-function VerticalPeriodHeader({ label }: { label: string }) {
-  return (
-    <View style={VPH.row}>
-      <View style={VPH.line} />
-      <View style={VPH.labelRail}>
-        <RotatedAxisLabel text={label} />
-      </View>
-      <View style={VPH.line} />
-    </View>
-  );
-}
-
-const VPH = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 8 },
-  line: { flex: 1, height: 1, backgroundColor: '#2d2d44' },
-  labelRail: {
-    width: 96,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
-
-
-const V = StyleSheet.create({
-  container: { paddingBottom: 8 },
-  axisWrap: { paddingVertical: 8, paddingHorizontal: 16, position: 'relative' },
-  axis: {
-    position: 'absolute', left: '50%', top: 0, bottom: 0,
-    width: 2, backgroundColor: '#2d2d44', marginLeft: -1,
-  },
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, minHeight: 60 },
-  side: { flex: 1, paddingHorizontal: 12 },
-  dotWrap: { width: 24, alignItems: 'center', zIndex: 1 },
-  dot: {
-    width: 14, height: 14, borderRadius: 7,
-    backgroundColor: '#0f0f1a', borderWidth: 2, borderColor: '#6366f1',
-  },
-  addDot: {
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center',
-  },
-  addDotText: { color: '#fff', fontSize: 18, lineHeight: 22 },
-  emptyWrap: { flexDirection: 'row', alignItems: 'center', paddingVertical: 32 },
-  emptyCard: {
-    flex: 1, marginLeft: 16, backgroundColor: '#1a1a2e', borderRadius: 12,
-    padding: 16, borderWidth: 1, borderColor: '#2d2d44', gap: 10, alignItems: 'flex-start',
-  },
-  emptyText: { fontSize: 14, color: '#4a4a6a' },
-  addBtn: { backgroundColor: '#6366f1', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 14 },
-  addBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-});
-
 // ─── Horizontal timeline ──────────────────────────────────────────────────────
 
 function HorizontalPeriodHeader({ label }: { label: string }) {
@@ -374,7 +319,7 @@ function HorizontalPeriodHeader({ label }: { label: string }) {
 }
 
 const HPH = StyleSheet.create({
-  col: { alignItems: 'center', marginRight: 4, minWidth: 80 },
+  col: { alignItems: 'center', marginRight: 4, minWidth: 120, marginBottom: 24 },
   cardSlot: { height: 110, width: '100%' },
   dotRow: { height: 28, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
 });
@@ -422,7 +367,7 @@ function HorizontalTimeline({ timeline, periods, events, onAddEvent, onDeleteEve
                 const hue = group.period ? (group.period.position * 47) % 360 : 200;
                 const periodColor = `hsl(${hue},60%,60%)`;
                 const label = group.period
-                  ? periodName(timeline.tracking_type, group.period) + ` · ${group.period.years}y`
+                  ? periodName(timeline.tracking_type, group.period) + ` · ${group.period.years} years`
                   : 'Other';
                 let altIndex = 0;
                 return (
@@ -439,7 +384,12 @@ function HorizontalTimeline({ timeline, periods, events, onAddEvent, onDeleteEve
                         <View key={ev.id} style={[H.col, { width: colWidth }]}>
                           <View style={[H.cardSlot, { justifyContent: 'flex-end' }]}>
                             {!collapsed && isTop ? (
-                              <View style={[H.eventCard, { borderColor: color + '55' }]}>
+                              <Pressable
+                                style={[H.eventCard, { borderColor: color + '55' }]}
+                                onPress={() => onOpenCard(ev.card_id)}
+                                android_ripple={{ color: '#ffffff10' }}
+                                testID={`timeline-event-${ev.id}`}
+                              >
                                 <View style={[H.typeBar, { backgroundColor: color }]} />
                                 <View style={H.cardBody}>
                                   <Text style={[H.eventLabel, { color }]}>{ev.label}</Text>
@@ -449,7 +399,7 @@ function HorizontalTimeline({ timeline, periods, events, onAddEvent, onDeleteEve
                                 <TouchableOpacity style={H.del} onPress={deleteHandler} hitSlop={8}>
                                   <Text style={H.delText}>✕</Text>
                                 </TouchableOpacity>
-                              </View>
+                              </Pressable>
                             ) : null}
                           </View>
 
@@ -466,7 +416,12 @@ function HorizontalTimeline({ timeline, periods, events, onAddEvent, onDeleteEve
 
                           <View style={[H.cardSlot, { justifyContent: 'flex-start' }]}>
                             {!collapsed && !isTop ? (
-                              <View style={[H.eventCard, { borderColor: color + '55' }]}>
+                              <Pressable
+                                style={[H.eventCard, { borderColor: color + '55' }]}
+                                onPress={() => onOpenCard(ev.card_id)}
+                                android_ripple={{ color: '#ffffff10' }}
+                                testID={`timeline-event-${ev.id}`}
+                              >
                                 <View style={[H.typeBar, { backgroundColor: color }]} />
                                 <View style={H.cardBody}>
                                   <Text style={[H.eventLabel, { color }]}>{ev.label}</Text>
@@ -476,7 +431,7 @@ function HorizontalTimeline({ timeline, periods, events, onAddEvent, onDeleteEve
                                 <TouchableOpacity style={H.del} onPress={deleteHandler} hitSlop={8}>
                                   <Text style={H.delText}>✕</Text>
                                 </TouchableOpacity>
-                              </View>
+                              </Pressable>
                             ) : null}
                           </View>
                         </View>
@@ -505,14 +460,14 @@ function HorizontalTimeline({ timeline, periods, events, onAddEvent, onDeleteEve
 
 const H = StyleSheet.create({
   container: { paddingHorizontal: 24, paddingVertical: 8, minWidth: '100%' },
-  axisWrap: { flexDirection: 'row', alignItems: 'center', position: 'relative', minHeight: 260 },
+  axisWrap: { flexDirection: 'row', alignItems: 'center', position: 'relative', minHeight: 340 },
   axis: {
     position: 'absolute', left: 0, right: 0, top: '50%',
-    height: 2, backgroundColor: '#2d2d44', marginTop: -1,
+    height: 1, backgroundColor: '#2d2d44', marginTop: -1,
   },
   group: { flexDirection: 'row', alignItems: 'center' },
   col: { width: 160, alignItems: 'center', marginRight: 8 },
-  cardSlot: { height: 110, width: '100%', paddingHorizontal: 4 },
+  cardSlot: { height: 160, width: '100%', paddingHorizontal: 4 },
   dotRow: { height: 28, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
   dot: {
     width: 14, height: 14, borderRadius: 7,

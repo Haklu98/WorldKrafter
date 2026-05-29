@@ -3,7 +3,7 @@ import {
   View, Text, TouchableOpacity, ActivityIndicator, ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useLocalSearchParams, useFocusEffect, useRouter } from 'expo-router';
+import { useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { supabase } from '../../../../lib/supabase';
 import WorldHeader from '../_header';
 import FormatCard from './_FormatCard';
@@ -12,6 +12,7 @@ import TimeFormatModal from './_TimeFormatModal';
 import TimelineModal from './_TimelineModal';
 import VisualTimeline from './_VisualTimeline';
 import CreateCardModal from '../_create-card-modal';
+import CardView, { type FullCard } from '../_card-view';
 import { S } from '../../../../lib/timeline/styles';
 import type {
   Timeline, TimeFormat, TimelinePeriod,
@@ -20,7 +21,6 @@ import type {
 
 export default function WorldTimeline() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
 
   const [timeline, setTimeline] = useState<Timeline | null>(null);
   const [periods, setPeriods] = useState<TimelinePeriod[]>([]);
@@ -32,6 +32,8 @@ export default function WorldTimeline() {
   const [showTimelineModal, setShowTimelineModal] = useState(false);
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [editingTimeline, setEditingTimeline] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<FullCard | null>(null);
+  const [cardLoading, setCardLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
     const [tlRes, fmtRes] = await Promise.all([
@@ -109,6 +111,24 @@ export default function WorldTimeline() {
     setEvents((prev) => prev.filter((e) => e.id !== eventId));
   }
 
+  async function handleOpenCard(cardId: string) {
+    if (!cardId) return;
+    setCardLoading(true);
+    const { data, error } = await supabase
+      .from('cards')
+      .select('id, world_id, title, type, content, sections, updated_at')
+      .eq('id', cardId)
+      .maybeSingle();
+
+    setCardLoading(false);
+    if (error || !data) return;
+
+    setSelectedCard({
+      ...data,
+      sections: data.sections ?? [],
+    });
+  }
+
   async function handleDeleteTimeline() {
     if (!timeline) return;
     await supabase.from('timelines').delete().eq('id', timeline.id);
@@ -182,7 +202,7 @@ export default function WorldTimeline() {
                 events={events}
                 onAddEvent={() => setShowAddEvent(true)}
                 onDeleteEvent={handleDeleteEvent}
-                onOpenCard={() => router.push(`/world/${id}/lore`)}
+                onOpenCard={(cardId) => handleOpenCard(cardId)}
               />
             </View>
 
@@ -265,6 +285,20 @@ export default function WorldTimeline() {
           setEditingTimeline(false);
         }}
       />
+
+      {selectedCard && (
+        <CardView
+          card={selectedCard}
+          visible={!!selectedCard}
+          onClose={() => setSelectedCard(null)}
+          onUpdated={(updated) => setSelectedCard(updated)}
+          onDeleted={(deletedId) => {
+            if (selectedCard?.id === deletedId) {
+              setSelectedCard(null);
+            }
+          }}
+        />
+      )}
 
       {timeline && (
         <CreateCardModal

@@ -1,6 +1,7 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import WorldHeader from './_header';
+import WorldHeader from '../_header';
+import styles from './styles';
 
 export default function WorldMaps() {
   return (
@@ -13,9 +14,3 @@ export default function WorldMaps() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f0f1a' },
-  content: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  placeholder: { color: '#4a4a6a', fontSize: 15 },
-});
