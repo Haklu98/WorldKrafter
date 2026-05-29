@@ -3,7 +3,7 @@ import {
   View, Text, TouchableOpacity, ActivityIndicator, ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useFocusEffect, useRouter } from 'expo-router';
 import { supabase } from '../../../../lib/supabase';
 import WorldHeader from '../_header';
 import FormatCard from './_FormatCard';
@@ -15,11 +15,12 @@ import CreateCardModal from '../_create-card-modal';
 import { S } from '../../../../lib/timeline/styles';
 import type {
   Timeline, TimeFormat, TimelinePeriod,
-  CardTimestamp, TimelineOrientation,
+  CardTimestamp,
 } from '../../../../lib/timeline/types';
 
 export default function WorldTimeline() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
 
   const [timeline, setTimeline] = useState<Timeline | null>(null);
   const [periods, setPeriods] = useState<TimelinePeriod[]>([]);
@@ -27,10 +28,10 @@ export default function WorldTimeline() {
   const [events, setEvents] = useState<CardTimestamp[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [orientation, setOrientation] = useState<TimelineOrientation>('vertical');
   const [showFormatModal, setShowFormatModal] = useState(false);
   const [showTimelineModal, setShowTimelineModal] = useState(false);
   const [showAddEvent, setShowAddEvent] = useState(false);
+  const [editingTimeline, setEditingTimeline] = useState(false);
 
   const fetchData = useCallback(async () => {
     const [tlRes, fmtRes] = await Promise.all([
@@ -93,6 +94,8 @@ export default function WorldTimeline() {
   }, [id]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
   function handleCardCreated(_card: any, newTs: CardTimestamp[]) {
     if (newTs.length > 0) {
@@ -163,22 +166,6 @@ export default function WorldTimeline() {
               <Text style={S.sectionTitle}>{timeline.name}</Text>
               <View style={{ flexDirection: 'row', gap: 6 }}>
                 <TouchableOpacity
-                  style={[S.addBtn, orientation === 'vertical' && { borderColor: '#6366f1' }]}
-                  onPress={() => setOrientation('vertical')}
-                >
-                  <Text style={[S.addBtnText, orientation === 'vertical' && { color: '#6366f1' }]}>
-                    ↕ Vertical
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[S.addBtn, orientation === 'horizontal' && { borderColor: '#6366f1' }]}
-                  onPress={() => setOrientation('horizontal')}
-                >
-                  <Text style={[S.addBtnText, orientation === 'horizontal' && { color: '#6366f1' }]}>
-                    ↔ Horizontal
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
                   style={[S.addBtn, { backgroundColor: '#6366f1', borderColor: '#6366f1' }]}
                   onPress={() => setShowAddEvent(true)}
                 >
@@ -193,9 +180,9 @@ export default function WorldTimeline() {
                 timeline={timeline}
                 periods={periods}
                 events={events}
-                orientation={orientation}
                 onAddEvent={() => setShowAddEvent(true)}
                 onDeleteEvent={handleDeleteEvent}
+                onOpenCard={() => router.push(`/world/${id}/lore`)}
               />
             </View>
 
@@ -204,6 +191,7 @@ export default function WorldTimeline() {
               timeline={timeline}
               format={activeFormat}
               periods={periods}
+              onEdit={() => setEditingTimeline(true)}
               onDelete={handleDeleteTimeline}
             />
           </View>
@@ -260,6 +248,21 @@ export default function WorldTimeline() {
           setTimeline(tl);
           setShowTimelineModal(false);
           fetchData();
+        }}
+      />
+
+      <TimelineModal
+        visible={editingTimeline}
+        worldId={id}
+        formats={formats}
+        editTimeline={timeline ?? undefined}
+        editPeriods={periods}
+        onClose={() => setEditingTimeline(false)}
+        onCreated={() => {}}
+        onUpdated={(tl, newPeriods) => {
+          setTimeline(tl);
+          setPeriods(newPeriods);
+          setEditingTimeline(false);
         }}
       />
 

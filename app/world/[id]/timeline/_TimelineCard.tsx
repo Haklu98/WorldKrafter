@@ -8,10 +8,11 @@ type Props = {
   timeline: Timeline;
   format: TimeFormat | null;
   periods: TimelinePeriod[];
+  onEdit: () => void;
   onDelete: () => void;
 };
 
-export default function TimelineCard({ timeline, format, periods, onDelete }: Props) {
+export default function TimelineCard({ timeline, format, periods, onEdit, onDelete }: Props) {
   function confirmDelete() {
     confirmAction(
       'Delete timeline',
@@ -28,6 +29,9 @@ export default function TimelineCard({ timeline, format, periods, onDelete }: Pr
           <View style={S.badge}>
             <Text style={S.badgeText}>{TRACKING_TYPE_LABELS[timeline.tracking_type]}</Text>
           </View>
+          <TouchableOpacity style={styles.editBtn} onPress={onEdit}>
+            <Text style={styles.editBtnText}>Edit</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.deleteBtn} onPress={confirmDelete}>
             <Text style={styles.deleteBtnText}>Delete</Text>
           </TouchableOpacity>
@@ -77,6 +81,11 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   name: { fontSize: 18, fontWeight: '800', color: '#ffffff', flex: 1 },
   meta: { fontSize: 13, color: '#8b8fa8' },
+  editBtn: {
+    borderWidth: 1, borderColor: '#6366f144', borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 4,
+  },
+  editBtnText: { fontSize: 12, color: '#6366f1', fontWeight: '600' },
   deleteBtn: {
     borderWidth: 1, borderColor: '#ef444444', borderRadius: 8,
     paddingHorizontal: 10, paddingVertical: 4,

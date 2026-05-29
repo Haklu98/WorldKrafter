@@ -42,6 +42,7 @@ export default function CardView({ card, visible, onClose, onUpdated, onDeleted 
 
   function handleDelete() {
     confirmAction('Delete card', `Delete "${card.title}"? This cannot be undone.`, async () => {
+      await supabase.from('card_timestamps').delete().eq('card_id', card.id);
       await supabase.from('cards').delete().eq('id', card.id);
       onDeleted(card.id);
       onClose();
