@@ -34,4 +34,18 @@ export default StyleSheet.create({
     shadowOpacity: 0.4, shadowRadius: 8, elevation: 8,
   },
   fabText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
+  dropdown: {
+  borderWidth: 1,
+  borderColor: '#444',
+  borderRadius: 8,
+  paddingHorizontal: 12,
+  backgroundColor: '#6366f1',
+  width: 120,
+  margin: 16,
+},
+dropdownBox: {
+  borderColor: '#444',
+  backgroundColor: '#1a1a2e',
+  width: 240,
+},
 });

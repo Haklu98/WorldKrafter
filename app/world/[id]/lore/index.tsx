@@ -11,6 +11,7 @@ import WorldHeader from '../_header';
 import CreateCardModal from '../_create-card-modal';
 import CardView, { type FullCard } from '../_card-view';
 import styles from './styles';
+import DropDownPicker from 'react-native-dropdown-picker';
 
 type FilterType = CardType | 'All';
 
@@ -66,42 +67,44 @@ export default function WorldLore() {
     return acc;
   }, {});
 
+  // Dropdown state
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(filter);
+
+  const items = [
+  { label: `All (${cards.length})`, value: 'All' },
+  ...CARD_TYPES
+    .filter((t) => (typeCounts[t] ?? 0) > 0)
+    .map((type) => ({
+      label: `${type} (${typeCounts[type]})`,
+      value: type,
+    })),
+];
+
+
+
   return (
     <View style={styles.container}>
-      <StatusBar style="light" />
+
       <WorldHeader section="Lore" />
+  {/* Filter bar */}
+      <DropDownPicker
+  open={open}
+  value={value}
+  items={items}
+  setOpen={setOpen}
+  setValue={(callback) => {
+    const val = callback(value);
+    setValue(val);
+    setFilter(val);
+  }}
+  style={styles.dropdown}
+  dropDownContainerStyle={styles.dropdownBox}
+   textStyle={{ color: '#fff' }}
+  labelStyle={{ color: '#fff' }}
+/>
 
-      {/* Filter bar */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterBar}
-      >
-        <TouchableOpacity
-          style={[styles.filterChip, filter === 'All' && styles.filterChipActive]}
-          onPress={() => setFilter('All')}
-        >
-          <Text style={[styles.filterChipText, filter === 'All' && styles.filterChipTextActive]}>
-            All {cards.length > 0 ? `(${cards.length})` : ''}
-          </Text>
-        </TouchableOpacity>
-        {CARD_TYPES.filter((t) => (typeCounts[t] ?? 0) > 0).map((type) => {
-          const active = filter === type;
-          const color = CARD_TYPE_COLOR[type];
-          return (
-            <TouchableOpacity
-              key={type}
-              style={[styles.filterChip, active && { backgroundColor: color + '22', borderColor: color + '66' }]}
-              onPress={() => setFilter(type)}
-            >
-              <Text style={[styles.filterChipText, active && { color }]}>
-                {type} ({typeCounts[type]})
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-
+    
       {/* Card list */}
       {loading ? (
         <View style={styles.centered}><ActivityIndicator color="#6366f1" /></View>
