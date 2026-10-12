@@ -1,23 +1,42 @@
 {
   "name": "worldkrafter",
   "version": "0.1.0",
-  "description": "WorldKrafter: desktop app built with Electron, structured for a future Steam release",
-  "main": "src/main/main.js",
+  "description": "WorldKrafter — a local-first worldbuilding tool",
+  "main": "dist/main/main/main.js",
   "author": "Your Name",
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "start": "electron .",
-    "dist": "electron-builder",
-    "dist:win": "electron-builder --win",
-    "dist:mac": "electron-builder --mac",
-    "dist:linux": "electron-builder --linux"
+    "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:main\"",
+    "dev:renderer": "vite",
+    "dev:main": "tsc -p tsconfig.json --watch",
+    "build:renderer": "vite build",
+    "build:main": "tsc -p tsconfig.json",
+    "build": "npm run build:renderer && npm run build:main",
+    "start": "electron . --disable-gpu --no-sandbox",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "concurrently": "^9.0.0",
+    "cross-env": "^7.0.3",
     "electron": "^44.7.0",
-    "electron-builder": "^26.15.3"
+    "electron-builder": "^26.15.3",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.4",
+    "wait-on": "^8.0.0"
   },
   "dependencies": {
-    "steamworks.js": "^0.4.0"
+    "better-sqlite3": "^11.10.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.18.4"
   }
 }

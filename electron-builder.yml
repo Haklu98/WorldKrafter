@@ -1,17 +1,15 @@
-appId: com.yourname.worldkrafter
+appId: com.worldkrafter.app
 productName: WorldKrafter
 directories:
-  output: dist
+  output: dist/release
 files:
-  - src/**/*
+  - dist/main/**/*
+  - dist/renderer/**/*
   - package.json
+  - node_modules/better-sqlite3/**/*
 asar: true
-# Native Steam binaries can't load from inside an asar archive.
-# Verify this path against the installed steamworks.js version.
 asarUnpack:
-  - node_modules/steamworks.js/dist/**
-# Steam distributes folders of files (depots), not installers, so build
-# unpacked directories rather than NSIS/DMG/AppImage.
+  - node_modules/better-sqlite3/**/*
 win:
   target:
     - target: dir
@@ -19,7 +17,7 @@ win:
 mac:
   target:
     - target: dir
-  category: public.app-category.utilities
+  category: public.app-category.productivity
 linux:
   target:
     - target: dir

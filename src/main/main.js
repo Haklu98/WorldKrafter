@@ -1,6 +1,5 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const steam = require('./steam');
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -20,14 +19,11 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  steam.init(); // safe to fail: the app runs fine without Steam
-
   ipcMain.handle('app:info', () => ({
     name: app.getName(),
     version: app.getVersion(),
     platform: process.platform,
   }));
-  ipcMain.handle('steam:status', () => steam.status());
 
   createWindow();
 

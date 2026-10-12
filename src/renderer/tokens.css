@@ -1,0 +1,48 @@
+/* WorldKrafter Design Tokens */
+:root {
+  /* Background layers */
+  --bg-base:    #0d0d1a;
+  --bg-surface: #13131f;
+  --bg-raised:  #1a1a2e;
+  --bg-overlay: #21213a;
+
+  /* Borders */
+  --border:       #2a2a40;
+  --border-focus: #6366f1;
+
+  /* Text */
+  --text-primary:   #f0f0f5;
+  --text-secondary: #9191a8;
+  --text-muted:     #55556a;
+
+  /* Accent — indigo/violet */
+  --accent:       #6366f1;
+  --accent-hover: #7c7ff5;
+  --accent-dim:   rgba(99, 102, 241, 0.15);
+
+  /* Card type colors */
+  --type-character: #a78bfa;
+  --type-event:     #f59e0b;
+  --type-kingdom:   #10b981;
+  --type-location:  #3b82f6;
+  --type-lore:      #ec4899;
+  --type-cult:      #ef4444;
+  --type-magic:     #8b5cf6;
+  --type-artifact:  #f97316;
+  --type-creature:  #14b8a6;
+  --type-note:      #6b7280;
+
+  /* Typography */
+  --font-sans:  'Inter', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Lora', 'Georgia', serif;
+
+  /* Spacing */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+}
